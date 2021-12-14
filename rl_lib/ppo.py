@@ -23,7 +23,7 @@ class Agent(nn.Module):
     ):
         super(Agent, self).__init__()
         self.net = Learna_Net(
-            net_param.in_size, net_param.out_size,
+            net_param.in_size,
             net_param.emb_num, net_param.emb_out_size,
             net_param.conv1_in_size, net_param.conv1_out_size, net_param.conv1_kernel_size, net_param.conv1_stride,
             net_param.conv2_in_size, net_param.conv2_out_size, net_param.conv2_kernel_size, net_param.conv2_stride,
