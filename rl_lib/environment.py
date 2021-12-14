@@ -4,7 +4,7 @@ import gym
 from utils.rna_lib import struct_dotB2Edge, struct_dotB2Code, base_list, base_pair_dict_4, base_pair_dict_6
 
 
-class RNA_ENV(gym):
+class RNA_ENV(gym.Env):
     def __init__(self, dotB, windw_size, action_space=4):
         super(RNA_ENV, self).__init__()
         self.dotB = dotB
@@ -19,7 +19,7 @@ class RNA_ENV(gym):
             self.base_pair_dict = base_pair_dict_4
         else:
             self.base_pair_dict = base_pair_dict_6
-        self.seq_base_list = ['A'] * self.l
+        self.seq_base_list = [' '] * self.l
 
     def renew(self):
         self.seq_base_list = [' '] * self.l
@@ -41,6 +41,7 @@ class RNA_ENV(gym):
         return scope
 
     def step(self, action):
+        done = False
         base = base_list[action]
         place = self.sight_center
         self.seq_base_list[place] = base
@@ -58,6 +59,7 @@ class RNA_ENV(gym):
             dotB_real = RNA.fold(seq)[0]
             distance = RNA.hamming_distance(self.dotB, dotB_real)
             reward = 1 - distance / self.l
+            done = True
 
-        return scope, reward
+        return scope, reward, done
 
