@@ -18,37 +18,37 @@ def fetch_items(list, index):
 
 class Agent(nn.Module):
     def __init__(
-            self, actor_param, critic_param,
+            self, net_param,
             batch_size, k_epoch, eps_clip, gamma, action_space, buffer_vol, device, lr_decay
     ):
         super(Agent, self).__init__()
-        self.actorNet = Learna_Net(
-            actor_param.in_size, actor_param.out_size,
-            actor_param.emb_num, actor_param.emb_out_size,
-            actor_param.conv1_in_size, actor_param.conv1_out_size, actor_param.conv1_kernel_size, actor_param.conv1_stride,
-            actor_param.conv2_in_size, actor_param.conv2_out_size, actor_param.conv2_kernel_size, actor_param.conv2_stride,
-            actor_param.lstm_in_size, actor_param.lstm_hidden_size, actor_param.lstm_num_layers,
-            actor_param.fc1_in_size, actor_param.fc1_out_size,
-            actor_param.fc2_in_size,
+        self.net = Learna_Net(
+            net_param.in_size, net_param.out_size,
+            net_param.emb_num, net_param.emb_out_size,
+            net_param.conv1_in_size, net_param.conv1_out_size, net_param.conv1_kernel_size, net_param.conv1_stride,
+            net_param.conv2_in_size, net_param.conv2_out_size, net_param.conv2_kernel_size, net_param.conv2_stride,
+            net_param.lstm_in_size, net_param.lstm_hidden_size, net_param.lstm_num_layers,
+            net_param.fc1_a_in_size, net_param.fc1_a_out_size, net_param.fc2_a_in_size, net_param.fc2_a_out_size,
+            net_param.fc1_c_in_size, net_param.fc1_c_out_size, net_param.fc2_c_in_size, net_param.fc2_c_out_size,
         )
 
-        self.criticNet = Learna_Net(
-            critic_param.in_size, critic_param.out_size,
-            critic_param.emb_num, critic_param.emb_out_size,
-            critic_param.conv1_in_size, critic_param.conv1_out_size, critic_param.conv1_kernel_size,
-            critic_param.conv1_stride,
-            critic_param.conv2_in_size, critic_param.conv2_out_size, critic_param.conv2_kernel_size,
-            critic_param.conv2_stride,
-            critic_param.lstm_in_size, critic_param.lstm_hidden_size, critic_param.lstm_num_layers,
-            critic_param.fc1_in_size, critic_param.fc1_out_size,
-            critic_param.fc2_in_size,
-        )
+        # self.criticNet = Learna_Net(
+        #     critic_param.in_size, critic_param.out_size,
+        #     critic_param.emb_num, critic_param.emb_out_size,
+        #     critic_param.conv1_in_size, critic_param.conv1_out_size, critic_param.conv1_kernel_size,
+        #     critic_param.conv1_stride,
+        #     critic_param.conv2_in_size, critic_param.conv2_out_size, critic_param.conv2_kernel_size,
+        #     critic_param.conv2_stride,
+        #     critic_param.lstm_in_size, critic_param.lstm_hidden_size, critic_param.lstm_num_layers,
+        #     critic_param.fc1_in_size, critic_param.fc1_out_size,
+        #     critic_param.fc2_in_size,
+        # )
 
-        self.optimizer_a = torch.optim.Adam(self.actorNet.parameters(), lr=actor_param.lr)
-        self.optimizer_c = torch.optim.Adam(self.criticNet.parameters(), lr=critic_param.lr)
+        self.optimizer = torch.optim.Adam(self.net.parameters(), lr=net_param.lr)
+        # self.optimizer_c = torch.optim.Adam(self.criticNet.parameters(), lr=critic_param.lr)
 
-        self.scheduler_a = torch.optim.lr_scheduler.ExponentialLR(self.optimizer_a, lr_decay)
-        self.scheduler_c = torch.optim.lr_scheduler.ExponentialLR(self.optimizer_c, lr_decay)
+        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, lr_decay)
+        # self.scheduler_c = torch.optim.lr_scheduler.ExponentialLR(self.optimizer_c, lr_decay)
 
         self.batch_size = batch_size
         self.k_epoch = k_epoch
@@ -61,8 +61,9 @@ class Agent(nn.Module):
         self.buffer_cnt = 0
 
     def forward(self, states, actions):
-        value = self.criticNet(states)
-        action_probs = self.actorNet(states)
+        # value = self.criticNet(states)
+        # action_probs = self.actorNet(states)
+        action_probs, value = self.net(states)
         action_probs = torch.softmax(action_probs, dim=1)
 
         dist = Categorical(action_probs)
@@ -73,7 +74,8 @@ class Agent(nn.Module):
 
     def work(self, state):
         with no_grad():
-            action_probs = self.actorNet(state)
+            # action_probs = self.actorNet(state)
+            action_probs, _ = self.net(state)
             action_probs = torch.softmax(action_probs, dim=1)
 
         action = torch.multinomial(action_probs, 1)
@@ -140,17 +142,20 @@ class Agent(nn.Module):
 
                 loss_all = loss_a + 0.5 * loss_c - 0.01 * dist_entropy.mean()
 
-                self.optimizer_a.zero_grad()
-                self.optimizer_c.zero_grad()
+                # self.optimizer_a.zero_grad()
+                # self.optimizer_c.zero_grad()
+                self.optimizer.zero_grad()
 
                 loss_all.backward()
 
-                self.optimizer_a.step()
-                self.optimizer_c.step()
+                # self.optimizer_a.step()
+                # self.optimizer_c.step()
+                self.optimizer.step()
             print("Loss_A: {}, Loss_c: {}".format(loss_a.item(), loss_c.item()))
 
-        self.scheduler_a.step()
-        self.optimizer_c.step()
+        # self.scheduler_a.step()
+        # self.optimizer_c.step()
+        self.scheduler.step()
 
         return loss_a.item(), loss_c.item()
 
