@@ -19,7 +19,7 @@ def fetch_items(list, index):
 class Agent(nn.Module):
     def __init__(
             self, actor_param, critic_param,
-            batch_size, k_epoch, eps_clip, gamma, action_space, buffer_vol, device
+            batch_size, k_epoch, eps_clip, gamma, action_space, buffer_vol, device, lr_decay
     ):
         super(Agent, self).__init__()
         self.actorNet = Learna_Net(
@@ -46,6 +46,9 @@ class Agent(nn.Module):
 
         self.optimizer_a = torch.optim.Adam(self.actorNet.parameters(), lr=actor_param.lr)
         self.optimizer_c = torch.optim.Adam(self.criticNet.parameters(), lr=critic_param.lr)
+
+        self.scheduler_a = torch.optim.lr_scheduler.ExponentialLR(self.optimizer_a, lr_decay)
+        self.scheduler_c = torch.optim.lr_scheduler.ExponentialLR(self.optimizer_c, lr_decay)
 
         self.batch_size = batch_size
         self.k_epoch = k_epoch
@@ -80,10 +83,10 @@ class Agent(nn.Module):
 
         return action.detach().items, action_log_prob.detach()
 
-    def storeTransition(self, transition, id_chain):
+    def storeTransition(self, transition):
         self.buffer.append(transition)
 
-    def clean_buffer(self, episode):
+    def clean_buffer(self):
         self.buffer_cnt += 1
         if self.buffer_cnt % self.buffer_vol == 0:
             del self.buffer[:]
@@ -144,6 +147,10 @@ class Agent(nn.Module):
 
                 self.optimizer_a.step()
                 self.optimizer_c.step()
+            print("Loss_A: {}, Loss_c: {}".format(loss_a.item(), loss_c.item()))
+
+        self.scheduler_a.step()
+        self.optimizer_c.step()
 
         return loss_a.item(), loss_c.item()
 
