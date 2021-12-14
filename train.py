@@ -2,7 +2,7 @@ from datetime import datetime
 
 import RNA
 import torch
-from utils.config import actor_param, critic_param, device, action_space
+from utils.config import net_param, device, action_space
 from rl_lib.ppo import Agent, Transition
 from rl_lib.environment import RNA_ENV
 import os
@@ -38,7 +38,7 @@ def main():
     lr_decay = 0.999
 
     agent = Agent(
-        actor_param, critic_param, batch_size, k_epoch, eps_clip, gamma, action_space, buffer_vol, device, lr_decay
+        net_param, batch_size, k_epoch, eps_clip, gamma, action_space, buffer_vol, device, lr_decay
 
     )
 
@@ -106,18 +106,23 @@ def main():
             writer.add_scalar('loss_a', loss_a, ep)
             writer.add_scalar('loss_c', loss_c, ep)
 
-            for tag_, value in agent.actorNet.named_parameters():
-                tag_ = 'a.' + tag_.replace('.', '/')
+            # for tag_, value in agent.actorNet.named_parameters():
+            #     tag_ = 'a.' + tag_.replace('.', '/')
+            #     writer.add_histogram(tag_, value, ep)
+            #     writer.add_histogram(tag_ + '/grad', value.grad.data.cpu().numpy(), ep)
+            #
+            # for tag_, value in agent.criticNet.named_parameters():
+            #     tag_ = 'c.' + tag_.replace('.', '/')
+            #     writer.add_histogram(tag_, value, ep)
+            #     writer.add_histogram(tag_ + '/grad', value.grad.data.cpu().numpy(), ep)
+            # writer.add_histogram('lr_a', agent.optimizer_a.state_dict()['param_groups'][0]['lr'], ep)
+            # writer.add_histogram('lr_c', agent.optimizer_c.state_dict()['param_groups'][0]['lr'], ep)
+
+            for tag_, value in agent.net.named_parameters():
+                tag_ = tag_.replace('.', '/')
                 writer.add_histogram(tag_, value, ep)
                 writer.add_histogram(tag_ + '/grad', value.grad.data.cpu().numpy(), ep)
-
-            for tag_, value in agent.criticNet.named_parameters():
-                tag_ = 'c.' + tag_.replace('.', '/')
-                writer.add_histogram(tag_, value, ep)
-                writer.add_histogram(tag_ + '/grad', value.grad.data.cpu().numpy(), ep)
-            writer.add_histogram('lr_a', agent.optimizer_a.state_dict()['param_groups'][0]['lr'], ep)
-            writer.add_histogram('lr_c', agent.optimizer_c.state_dict()['param_groups'][0]['lr'], ep)
-
+            writer.add_histogram('lr', agent.optimizer.state_dict()['param_groups'][0]['lr'], ep)
             agent.clean_buffer()
 
     ########################### finished ###########################
