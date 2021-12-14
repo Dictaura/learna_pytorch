@@ -21,7 +21,7 @@ class RNA_ENV(gym.Env):
             self.base_pair_dict = base_pair_dict_6
         self.seq_base_list = [' '] * self.l
 
-    def renew(self):
+    def reset(self):
         self.seq_base_list = [' '] * self.l
         self.sight_center = 0
         self.struct_code = struct_dotB2Code(self.dotB, self.padding_size)
@@ -45,10 +45,11 @@ class RNA_ENV(gym.Env):
         base = base_list[action]
         place = self.sight_center
         self.seq_base_list[place] = base
+        h_index = self.h_edges.t()
         if self.dotB[self.sight_center] != '.':
-            base_pair = self.base_pair_dict[base]
-            pair_index = torch.where(self.h_edges[0] == place)
-            place_pair = self.h_edges[pair_index][1]
+            base_pair = self.base_pair_dict[base][0]
+            pair_index = torch.where(h_index[0] == place)
+            place_pair = h_index[1][pair_index]
             self.seq_base_list[place_pair] = base_pair
 
         scope = self.observe()

@@ -72,7 +72,7 @@ class Agent(nn.Module):
         return action_log_probs, value, dist_entropy
 
     def work(self, state):
-        with no_grad:
+        with no_grad():
             action_probs = self.actorNet(state)
             action_probs = torch.softmax(action_probs, dim=1)
 
@@ -81,7 +81,7 @@ class Agent(nn.Module):
         dist = Categorical(action_probs)
         action_log_prob = dist.log_prob(action)
 
-        return action.detach().items, action_log_prob.detach()
+        return action.detach().item(), action_log_prob.detach().item()
 
     def storeTransition(self, transition):
         self.buffer.append(transition)
@@ -105,7 +105,7 @@ class Agent(nn.Module):
         action_list = [t.action for t in self.buffer]
         reward_list = [t.reward for t in self.buffer]
         done_list = [t.done for t in self.buffer]
-        old_a_log_p_list = [t.a_log_p for t in self.buffer]
+        old_a_log_p_list = [t.a_log_prob for t in self.buffer]
 
         R = 0
         for r, done in zip(reward_list[::-1], done_list[::-1]):
@@ -115,7 +115,7 @@ class Agent(nn.Module):
             Gt_list.insert(0, R)
 
         Gts = torch.tensor(Gt_list).to(self.device)
-        states = torch.tensor(state_list).to(self.device)
+        states = torch.cat(state_list, dim=0).to(self.device)
         actions = torch.tensor(action_list).to(self.device)
         old_a_log_ps = torch.tensor(old_a_log_p_list).to(self.device)
 
@@ -126,17 +126,17 @@ class Agent(nn.Module):
                 action_index = actions[index]
                 old_a_log_p_index = old_a_log_ps[index]
 
-                state_index = torch.tensor(state_index).float().to(self.device)
+                state_index = state_index.long().to(self.device)
 
                 a_log_p, v, dist_entropy = self.forward(state_index, action_index)
-                advantage = Gt_index - v.detach()
+                advantage = Gt_index - v.detach().view(-1,)
 
                 ratio = torch.exp(a_log_p - old_a_log_p_index.detach())
                 surr1 = ratio * advantage
                 surr2 = clamp(ratio, 1-self.eps_clip, 1+self.eps_clip) * advantage
 
                 loss_a = -torch.min(surr1, surr2).mean()
-                loss_c = F.mse_loss(Gt_index, v)
+                loss_c = F.mse_loss(Gt_index, v.view(-1))
 
                 loss_all = loss_a + 0.5 * loss_c - 0.01 * dist_entropy.mean()
 

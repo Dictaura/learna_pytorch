@@ -23,7 +23,7 @@ def main():
     iter_f = iter(f)
     dataset = []
     for line_ in iter_f:
-        line = line_.repalce('\n', '')
+        line = line_.replace('\n', '')
         dataset.append(line)
 
     window_size = 11
@@ -43,7 +43,7 @@ def main():
     )
 
     ########################### setting ###########################
-    max_round = 300
+    max_round = 3000
     update_freq = 1
     log_freq = 1
     save_freq = 20
@@ -73,13 +73,14 @@ def main():
     log_f.write("episode, reward, distance, sequence\n")
 
     ########################### training process ###########################
+    print("Started training at (GMT) : ", start_time)
     for ep in range(1, max_round+1):
         print("=====================================" + str(ep) + "==================================================")
         done = False
         state = env.reset()
 
         while not done:
-            state = torch.tensor(state).float().to(device)
+            state = torch.tensor(state).long().unsqueeze(0).to(device)
             action, a_log_prob = agent.work(state)
             next_state, reward, done = env.step(action)
 
@@ -108,12 +109,12 @@ def main():
             for tag_, value in agent.actorNet.named_parameters():
                 tag_ = 'a.' + tag_.replace('.', '/')
                 writer.add_histogram(tag_, value, ep)
-                writer.add_scalar(tag_ + '/grad', value.grad.data.cpu().numpy(), ep)
+                writer.add_histogram(tag_ + '/grad', value.grad.data.cpu().numpy(), ep)
 
             for tag_, value in agent.criticNet.named_parameters():
                 tag_ = 'c.' + tag_.replace('.', '/')
                 writer.add_histogram(tag_, value, ep)
-                writer.add_scalar(tag_ + '/grad', value.grad.data.cpu().numpy(), ep)
+                writer.add_histogram(tag_ + '/grad', value.grad.data.cpu().numpy(), ep)
             writer.add_histogram('lr_a', agent.optimizer_a.state_dict()['param_groups'][0]['lr'], ep)
             writer.add_histogram('lr_c', agent.optimizer_c.state_dict()['param_groups'][0]['lr'], ep)
 

@@ -29,9 +29,14 @@ class Learna_Net(nn.Module):
     def forward(self, x):
         x_in  = x
         x_emb = self.emb(x_in)
+        x_emb = torch.transpose(x_emb, -2, -1)
         x_conv1 = F.relu(self.conv1(x_emb))
         x_conv2 = F.relu(self.conv2(x_conv1))
-        x_lstm = F.relu(self.lstm(x_conv2))
+        x_conv2 = torch.transpose(x_conv2, -2, -1)
+        x_conv2 = torch.transpose(x_conv2, 0, 1)
+        x_lstm, _ = self.lstm(x_conv2)
+        x_lstm = x_lstm[-1::]
+        x_lstm = torch.transpose(x_lstm, 0, 1).squeeze(1)
         x_fc1 = F.relu(self.fc1(x_lstm))
         x_fc2 = F.relu(self.fc2(x_fc1))
 
